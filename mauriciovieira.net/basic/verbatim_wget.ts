@@ -1,11 +1,27 @@
 // Copyright 2020 Mauricio Vieira. All rights reserved. MIT license.
 
-import { urlParse } from "https://deno.land/x/url_parse/parse.ts";
+function filenameFromUrl(url: string): string | undefined {
+  const parsed = new URL(url);
+  const pathname = parsed.pathname;
 
-function dirNameFromUrl(url_: string): string {
-  const parsed = urlParse(url_);
+  const paths = pathname.split("/");
+  const lastPart = paths.pop();
+  if (lastPart === "") {
+    return "index.html";
+  } else {
+    return lastPart;
+  }
+}
 
-  return `${parsed.hostname}${parsed.pathname}`;
+function dirnameFromUrl(url: string): string {
+  const parsed = new URL(url);
+  const pathname = parsed.pathname;
+
+  let paths = pathname.split("/");
+  paths.pop();
+  paths.shift();
+
+  return [...[parsed.hostname], ...paths].join("/");
 }
 
 async function main(): Promise<void> {
@@ -13,12 +29,14 @@ async function main(): Promise<void> {
   const res = await fetch(url_);
   const body = new Uint8Array(await res.arrayBuffer());
 
-  const dirname = dirNameFromUrl(url_);
+  const dirname = dirnameFromUrl(url_);
+  const filename = filenameFromUrl(url_);
 
   await Deno.mkdir(dirname, { recursive: true });
-  const filename = `${dirname}/index.html`;
-  const bytesWritten = await Deno.writeFile(filename, body);
-  console.log(`${bytesWritten} chars were written from ${url_} to ${filename}`);
+  const fullpath = `${dirname}/${filename}`;
+
+  await Deno.writeFile(fullpath, body);
+  console.log(`Content was written from ${url_} to ${fullpath}`);
 }
 
 if (import.meta.main) {
